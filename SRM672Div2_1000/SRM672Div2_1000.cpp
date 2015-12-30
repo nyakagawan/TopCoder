@@ -53,6 +53,7 @@ Returns: 37
 This problem statement is the exclusive and proprietary property of TopCoder, Inc. Any unauthorized use or reproduction of this information without the prior written consent of TopCoder, Inc. is strictly prohibited. (c)2003, TopCoder, Inc. All rights reserved.
 */
 #include <assert.h>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -73,7 +74,9 @@ public:
 	u8* ppSuspision;
 	u8 N;
 
-	int sub(u8* pDone, u8* pPriority, u8 killer, int round) {
+	vector<int> shotestRoundMap;
+
+	void sub(u8* pDone, u8* pPriority, int round) {
 		round++;
 
 		vector<int> vecHighestPrioIndex;
@@ -91,34 +94,31 @@ public:
 			}
 		}
 
+		if (vecHighestPrioIndex.size() == 0)
+			return;
+
 		for (auto hpi : vecHighestPrioIndex) {
-			if (hpi == killer) {
-				return round;
+			if (shotestRoundMap[hpi] > round) {
+				shotestRoundMap[hpi] = round;
 			}
 		}
 
 		vector<u8> vecPrio((size_t)N);
-		int minRound = INT_MAX;
 		for (auto hpi : vecHighestPrioIndex) {
 			pDone[hpi] = 1;
 
 			for (int i = 1; i < N; i++) {
 				vecPrio[i] = max<u8>(pPriority[i], ppSuspision[hpi * N + i]);
 			}
-			int r = sub(pDone, vecPrio.data(), killer, round);
-			if (r < minRound) {
-				minRound = r;
-			}
+			sub(pDone, vecPrio.data(), round);
 
 			pDone[hpi] = 0;
 		}
-
-		return minRound;
 	}
 
 	int reveal(vector <string> S) {
 		auto sSize = S.size();
-		N = S[0].length();
+		N = (u8)S[0].length();
 		ppSuspision = new u8[sSize * N];
 		memset(ppSuspision, 0, sSize * N);
 		for (int i = 0; i < N; i++) {
@@ -128,19 +128,22 @@ public:
 			}
 		}
 
+		shotestRoundMap = vector<int>(N);
+		fill(shotestRoundMap.begin(), shotestRoundMap.end(), INT_MAX);
+
 		u8* pDone = new u8[N];
 		u8* pPrio = new u8[N];
 
+		memset(pDone, 0, N);
+		memcpy(pPrio, &ppSuspision[0], N);
+		sub(pDone, pPrio, 0);
+
 		int ans = 0;
 		for (int i = 1; i < N; i++) {
-			memset(pDone, 0, N);
-			memcpy(pPrio, &ppSuspision[0], N);
-			auto round = sub(pDone, pPrio, i, 0);
-			cout << i << ":" << round << endl;
-			ans += round * i;
+			ans += shotestRoundMap[i] * i;
 		}
 
-		delete [] ppSuspision;
+		delete[] ppSuspision;
 		delete[] pDone;
 		delete[] pPrio;
 
@@ -148,19 +151,30 @@ public:
 	}
 };
 
+static chrono::time_point<chrono::system_clock> sStartTime;
+void TimerStart() {
+	sStartTime = chrono::system_clock::now();
+}
+void PrintTime() {
+	const auto timeSpan = chrono::system_clock::now() - sStartTime;
+	cout << "Time: " << chrono::duration_cast<chrono::microseconds>(timeSpan).count() << "[micro sec]" << endl;
+}
+
 int main()
 {
 	Tdetectived2 cls;
-	////3
-	//cout << cls.reveal({ "000","000","000" }) << endl;
+	TimerStart();
+	//3
+	cout << cls.reveal({ "000","000","000" }) << endl;
 	//10
-	//cout << cls.reveal({ "0224","2011","2104","4140" }) << endl;
-	////12
-	//cout << cls.reveal({ "0886","8086","8801","6610" }) << endl;
-	////170
-	//cout << cls.reveal({ "064675511","603525154","430262731","652030511","726302420","552020464","517544052","153126500","141104200" }) << endl;
-	////37
+	cout << cls.reveal({ "0224","2011","2104","4140" }) << endl;
+	//12
+	cout << cls.reveal({ "0886","8086","8801","6610" }) << endl;
+	//170
+	cout << cls.reveal({ "064675511","603525154","430262731","652030511","726302420","552020464","517544052","153126500","141104200" }) << endl;
+	//37
 	cout << cls.reveal({ "0313131","3030020","1301132","3010031","1010003","3233003","1021330" }) << endl;
+	PrintTime();
 	return 0;
 }
 
